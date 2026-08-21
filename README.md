@@ -5,7 +5,7 @@
 3. Add add jinja from requirement.txt with python
 
 ```
-  python install -m Jinja2
+  python -m pip install Jinja2
 ```
 
 4. Run `make init`
