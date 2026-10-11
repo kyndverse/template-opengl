@@ -1,16 +1,17 @@
-.PHONY: init build rebuild run clean
+.PHONY: init init-debug build run dev
 
 init:
 	cmake -S . -B build
 
+init-debug:
+	cmake -S . -B build-debug -DFETCHCONTENT_QUIET=OFF --log-level=VERBOSE
+
 build:
 	cmake --build build
-
-rebuild:
-	cmake --build build --clean-first
 
 run:
 	.\build\Debug\OpenGLProject.exe
 
-clean:
-	cmake --build build --target clean
+dev:
+	cmake --build build
+	.\build\Debug\OpenGLProject.exe
