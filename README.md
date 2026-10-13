@@ -30,10 +30,8 @@ python -m pip install Jinja2
 Clone the project, then run:
 
 ```bash
-make init
+main init
 ```
-
-This will configure CMake and download GLFW and GLAD automatically.
 
 ## Build & Run
 
@@ -49,39 +47,12 @@ Run:
 make run
 ```
 
-Or rebuild from scratch:
-
-```bash
-make rebuild
-```
-
-Clean build files:
-
-```bash
-make clean
-```
-
 ## Make Commands
 
 | Command        | Description       |
 | -------------- | ----------------- |
 | `make init`    | Initialize CMake  |
 | `make build`   | Build project     |
-| `make rebuild` | Clean and rebuild |
 | `make run`     | Run application   |
-| `make clean`   | Clean build       |
-
-## Project Structure
-
-```text
-OpenGLProject/
-├── CMakeLists.txt
-├── Makefile
-├── README.md
-├── include/
-├── src/
-│   └── main.cpp
-└── build/
-```
 
 `build/` is generated automatically by CMake.
