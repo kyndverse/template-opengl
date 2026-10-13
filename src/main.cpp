@@ -1,29 +1,37 @@
+// clang-format off
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#define STB_IMAGE_IMPLEMENTATION
+#include "external/stb_image.h"
+// clang-format on
 
 #include <iostream>
 
-int main()
-{
-  if (!glfwInit())
-  {
+#include "ShaderManager.h"
+
+constexpr int WINDOW_WIDTH = 1080;
+constexpr int WINDOW_HEIGHT = 720;
+
+int main() {
+  // Initialize GLFW
+  if (!glfwInit()) {
     std::cerr << "Failed to initialize GLFW\n";
     return -1;
   }
 
+  // Configure OpenGL
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow *window = glfwCreateWindow(
-      640,
-      480,
-      "OpenGL Project",
-      nullptr,
-      nullptr);
+  // Create Window
+  GLFWwindow* window =
+      glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OpenGL Project", nullptr, nullptr);
 
-  if (!window)
-  {
+  if (!window) {
     std::cerr << "Failed to create GLFW window\n";
     glfwTerminate();
     return -1;
@@ -31,111 +39,136 @@ int main()
 
   glfwMakeContextCurrent(window);
 
+  // Initialize GLAD
   int version = gladLoadGL((GLADloadfunc)glfwGetProcAddress);
 
-  if (version == 0)
-  {
+  if (version == 0) {
     std::cerr << "Failed to initialize GLAD\n";
-
     glfwDestroyWindow(window);
     glfwTerminate();
-
     return -1;
   }
 
-  std::cout
-      << "OpenGL "
-      << GLAD_VERSION_MAJOR(version)
-      << "."
-      << GLAD_VERSION_MINOR(version)
-      << '\n';
+  // Configure Viewport
+  glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-  // Create viewport
-  glViewport(0, 0, 640, 480);
+  // Shader Config
+  ShaderManager::GetInstance()->compileAndLink("assets/shaders/shader.vert",
+                                               "assets/shaders/shader.frag");
 
-  // Create vertex
+  // clang-format off
   float vertices[] = {
-      -0.5f, -0.5f, 0.0f,
-      0.5f, -0.5f, 0.0f,
-      0.0f, 0.5f, 0.0f};
+    //posisi           //warna              //uv koordinat teksture
+    0.0f,-0.5f,0.0f,   1.0f, 0.0f, 0.0f,    0.0f,0.0f,
+    0.0f,0.5f,0.0f,    0.0f, 1.0f, 0.0f,    0.0f,1.0f,
+    0.5f,-0.5f,0.0f,   0.0f, 0.0f, 1.0f,    1.0f,0.0f,
+    0.5f,0.5f,0.0f,    1.0f, 0.0f, 0.0f,    1.0f,1.0f,
+  };
 
-  const char *vertexShaderSource =
-      "#version 460 core\n"
-      "layout (location = 0) in vec3 aPos;\n"
-      "void main()\n"
-      "{\n"
-      "    gl_Position = vec4(aPos, 1.0);\n"
-      "}\n";
+  unsigned int indices[] = {
+    0, 1, 2,
+    1, 2, 3,  
+  };
+  // clang-format on
 
-  unsigned int vertexShader;
-  vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  // declaration
+  GLuint VBO, VAO, EBO, texture;
 
-  glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-  glCompileShader(vertexShader);
-
-  const char *fragmentShaderSource =
-      "#version 460 core\n"
-      "out vec4 fragColor;\n"
-      "void main()\n"
-      "{\n"
-      "    fragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
-      "}\n";
-
-  unsigned int fragmentShader;
-  fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-
-  glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-  glCompileShader(fragmentShader);
-
-  unsigned int shaderProgram;
-  shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-  glLinkProgram(shaderProgram);
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
-
-  // kita butuh deklarasi unsigned int untuk diteruskan pada pemanggilan fungsi kemudian
-  GLuint VBO;
-  // bangkitkan buffers. kita butuh 1 id buffer.
-  glGenBuffers(1, &VBO);
-  // Kita pilih VBO buffer
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  // Letakkan data vertices pada buffer. Mirip dengan fungsi memcpy di bahasa C.
-  glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(GLfloat), vertices, GL_STATIC_DRAW);
-  // atau
-  // glBufferData(GL_ARRAY_BUFFER,
-  // sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  GLuint VAO;
-  // bangkitkan array dari vertek.
+  // generate buffer
   glGenVertexArrays(1, &VAO);
-  // Ikat/Bind VAO.
+  glGenBuffers(1, &VBO);
+  glGenBuffers(1, &EBO);
+  glGenTextures(1, &texture);
+  
+  // texture wraping
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  // texture filtering
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  // load texture image
+  int width, height, nrChannels;
+  stbi_set_flip_vertically_on_load(true);
+  std::string fileTex = "assets/textures/basecolor.png";
+  unsigned char* data = stbi_load(fileTex.c_str(), &width, &height, &nrChannels, 0);
+  if (data) {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  } else {
+    std::cerr << "Failed to load texture\n";
+  }
+
+  stbi_image_free(data);
+
+  // bind VBO to VAO
   glBindVertexArray(VAO);
-  // glVertexAttribPointer.
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, (GLfloat)0, (GLvoid *)0);
-  // berikan atribut vertek dengan nilai nilai default 0
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
 
-  while (!glfwWindowShouldClose(window))
-  {
-    glClearColor(
-        0.1f,
-        0.1f,
-        0.15f,
-        1.0f);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+
+  // bind texture
+  GLuint shaderProgram = ShaderManager::GetInstance()->getShaderProgram();
+
+  float curAngle = 0.0f;
+  const float toRadians = 3.14159265f / 180.0f;
+
+  while (!glfwWindowShouldClose(window)) {
+    glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(shaderProgram);
+
+    float timeValue = glfwGetTime();
+    float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+    int vertexColorLocation = glGetUniformLocation(shaderProgram, "mycolor");
+    glUniform1f(vertexColorLocation, greenValue);
+
+    // Transformasi
+    glm::mat4 model = glm::mat4(1.0f);
+    int modelLocacation = glGetUniformLocation(shaderProgram, "model");
+    // Scaling
+    model = glm::scale(model, glm::vec3(0.8f, 0.8f, 0.8f));
+    // Translasi
+    model = glm::translate(model, glm::vec3(0.0f, 0.5f, 0.0f));
+    // Rotate
+    curAngle += 0.01f;
+    if (curAngle >= 360) {
+      curAngle -= 360;
+    }
+    model = glm::rotate(model, curAngle * toRadians, glm::vec3(0.0f, 0.0f, 1.0f));
+
+    glUniformMatrix4fv(modelLocacation, 1, GL_FALSE, glm::value_ptr(model));
+
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(indices[0]), GL_UNSIGNED_INT, 0);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
 
-  glDeleteVertexArrays(1, &VAO);
+  // Cleanup
   glDeleteBuffers(1, &VBO);
+  glDeleteBuffers(1, &EBO);
+  glDeleteVertexArrays(1, &VAO);
+  glDeleteTextures(1, &texture);
+
+  ShaderManager::GetInstance()->destroy();
 
   glfwDestroyWindow(window);
   glfwTerminate();
