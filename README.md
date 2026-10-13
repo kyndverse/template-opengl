@@ -6,6 +6,7 @@ Simple C++ OpenGL template using:
 * CMake
 * GLFW 3.5.1
 * GLAD 2.0.8
+* GLM 1.0.3
 * OpenGL 4.6 Core
 * MSVC
 
