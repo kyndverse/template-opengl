@@ -76,7 +76,6 @@ FetchContent_MakeAvailable(glm)
 add_executable(OpenGLProject
     src/main.cpp
     src/ShaderManager.cpp
-    src/TextureManager.cpp
 )
 
 
