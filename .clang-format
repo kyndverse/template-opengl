@@ -1,0 +1,6 @@
+BasedOnStyle: Google
+ColumnLimit: 100
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+AllowAllConstructorInitializersOnNextLine: true
+# Mengizinkan elemen array / initializer list tetap dalam satu baris
+Cpp11BracedListStyle: true
